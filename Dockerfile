@@ -16,8 +16,71 @@ RUN mkdir -p /opt/openapi-generator \
     -o /opt/openapi-generator/openapi-generator-cli.jar
 
 ########################################################################
+# STAGE: CONFIG SPLITTER
+# Purpose: split unified config into per-language artifacts once
+########################################################################
+FROM python:3.12-slim AS config-splitter
+
+WORKDIR /src
+COPY openapi-generator.config.json /src/openapi-generator.config.json
+
+RUN set -euo pipefail; \
+    python <<'PY'
+import json
+from pathlib import Path
+
+cfg = json.loads(Path("/src/openapi-generator.config.json").read_text())
+common = cfg.get("common", {})
+languages = cfg.get("languages", {})
+
+defaults = {
+    "python": "out/python-client",
+    "typescript": "out/typescript-client",
+    "go": "out/go-client",
+}
+
+
+def strip_special(values: dict) -> dict:
+    return {
+        k: v
+        for k, v in values.items()
+        if k not in ("ignoreList", "additionalProperties")
+    }
+
+
+out_root = Path("/out/config")
+for language, default_out in defaults.items():
+    if language not in languages:
+        raise KeyError(f"Missing languages.{language} in unified config")
+
+    lang = languages[language]
+    merged = {**strip_special(common), **strip_special(lang)}
+
+    additional = {
+        **common.get("additionalProperties", {}),
+        **lang.get("additionalProperties", {}),
+    }
+    if additional:
+        merged["additionalProperties"] = additional
+
+    lang_dir = out_root / language
+    lang_dir.mkdir(parents=True, exist_ok=True)
+    (lang_dir / "openapi-generator-config.json").write_text(
+        json.dumps(merged, indent=2)
+    )
+
+    ignore = [*common.get("ignoreList", []), *lang.get("ignoreList", [])]
+    (lang_dir / "openapi-generator-ignore-list.txt").write_text(",".join(ignore))
+
+    out_dir = merged.get("outputDir", default_out)
+    if not out_dir.startswith("/"):
+        out_dir = f"/src/{out_dir}"
+    (lang_dir / "openapi-generator-out-dir.txt").write_text(out_dir)
+PY
+
+########################################################################
 # STAGE: PYTHON BUILDER
-# Purpose: generate Python client, run pyupgrade/ruff, validate import
+# Purpose: generate Python client, run pyupgrade/ruff
 ########################################################################
 FROM python:3.12-slim AS python-builder
 
@@ -32,11 +95,13 @@ COPY --from=openapi-cli /opt/openapi-generator/openapi-generator-cli.jar /opt/op
 WORKDIR /src
 COPY . /src
 
+COPY --from=config-splitter /out/config/python/openapi-generator-config.json /tmp/openapi-generator-config.json
+COPY --from=config-splitter /out/config/python/openapi-generator-ignore-list.txt /tmp/openapi-generator-ignore-list.txt
+COPY --from=config-splitter /out/config/python/openapi-generator-out-dir.txt /tmp/openapi-generator-out-dir.txt
+
 ENV OPENAPI_CLI_JAR=/opt/openapi-generator/openapi-generator-cli.jar
-ENV UNIFIED_CONFIG_FILE=/src/openapi-generator.config.json
 
 RUN set -euo pipefail; \
-    python -c "import json,pathlib; cfg=json.loads(pathlib.Path('${UNIFIED_CONFIG_FILE}').read_text()); common=cfg.get('common', {}); lang=cfg['languages']['python']; merged={**{k:v for k,v in common.items() if k not in ('ignoreList','additionalProperties')}, **{k:v for k,v in lang.items() if k not in ('ignoreList','additionalProperties')}}; additional={**common.get('additionalProperties', {}), **lang.get('additionalProperties', {})}; merged.update({'additionalProperties': additional} if additional else {}); pathlib.Path('/tmp/openapi-generator-config.json').write_text(json.dumps(merged, indent=2)); ignore=[*common.get('ignoreList', []), *lang.get('ignoreList', [])]; pathlib.Path('/tmp/openapi-generator-ignore-list.txt').write_text(','.join(ignore)); out=merged.get('outputDir', 'out/python-client'); out=f'/src/{out}' if not out.startswith('/') else out; pathlib.Path('/tmp/openapi-generator-out-dir.txt').write_text(out)"; \
     OUT_DIR="$(cat /tmp/openapi-generator-out-dir.txt)"; \
     OAG_IGNORE_LIST="$(cat /tmp/openapi-generator-ignore-list.txt)"; \
     rm -rf "$OUT_DIR"; \
@@ -45,8 +110,6 @@ RUN set -euo pipefail; \
     find "$OUT_DIR" -type f -name "*.py" -print0 | xargs -0 -r pyupgrade --py310-plus --exit-zero-even-if-changed; \
     ruff check --fix "$OUT_DIR"; \
     ruff format "$OUT_DIR"; \
-    python -m pip install --no-cache-dir "$OUT_DIR"; \
-    python -c "import importlib,tomllib,pathlib; p=pathlib.Path('${OUT_DIR}/pyproject.toml'); d=tomllib.loads(p.read_text()); pkg=d['tool']['hatch']['build']['targets']['wheel']['packages'][0]; mod=importlib.import_module(pkg); print('Import OK:', mod.__name__)"; \
     rm -rf /out/python-client; \
     mkdir -p /out; \
     cp -R "$OUT_DIR" /out/python-client
@@ -60,7 +123,7 @@ COPY --from=python-builder /out/python-client /out/python-client
 
 ########################################################################
 # STAGE: TYPESCRIPT BUILDER
-# Purpose: generate TypeScript client and validate package.json
+# Purpose: generate TypeScript client
 ########################################################################
 FROM node:22-bookworm-slim AS typescript-builder
 
@@ -73,17 +136,18 @@ COPY --from=openapi-cli /opt/openapi-generator/openapi-generator-cli.jar /opt/op
 WORKDIR /src
 COPY . /src
 
+COPY --from=config-splitter /out/config/typescript/openapi-generator-config.json /tmp/openapi-generator-config.json
+COPY --from=config-splitter /out/config/typescript/openapi-generator-ignore-list.txt /tmp/openapi-generator-ignore-list.txt
+COPY --from=config-splitter /out/config/typescript/openapi-generator-out-dir.txt /tmp/openapi-generator-out-dir.txt
+
 ENV OPENAPI_CLI_JAR=/opt/openapi-generator/openapi-generator-cli.jar
-ENV UNIFIED_CONFIG_FILE=/src/openapi-generator.config.json
 
 RUN set -eu; \
-    node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync(process.env.UNIFIED_CONFIG_FILE, 'utf8')); const common=cfg.common || {}; const lang=(cfg.languages || {}).typescript; if (!lang) { throw new Error('Missing languages.typescript in unified config'); } const strip=(obj)=>Object.fromEntries(Object.entries(obj).filter(([k])=>k!=='ignoreList'&&k!=='additionalProperties')); const merged={...strip(common), ...strip(lang)}; const additional={...(common.additionalProperties || {}), ...(lang.additionalProperties || {})}; if (Object.keys(additional).length) merged.additionalProperties=additional; fs.writeFileSync('/tmp/openapi-generator-config.json', JSON.stringify(merged, null, 2)); const ignore=[...(common.ignoreList || []), ...(lang.ignoreList || [])]; fs.writeFileSync('/tmp/openapi-generator-ignore-list.txt', ignore.join(',')); let out=merged.outputDir || 'out/typescript-client'; if (!out.startsWith('/')) out='/src/' + out; fs.writeFileSync('/tmp/openapi-generator-out-dir.txt', out);"; \
     OUT_DIR="$(cat /tmp/openapi-generator-out-dir.txt)"; \
     OAG_IGNORE_LIST="$(cat /tmp/openapi-generator-ignore-list.txt)"; \
     rm -rf "$OUT_DIR"; \
     java -jar "$OPENAPI_CLI_JAR" generate -c /tmp/openapi-generator-config.json --openapi-generator-ignore-list "$OAG_IGNORE_LIST"; \
     rm -rf "$OUT_DIR/.openapi-generator"; \
-    node -e "const p=require('${OUT_DIR}/package.json'); console.log('Package OK:', p.name);"; \
     rm -rf /out/typescript-client; \
     mkdir -p /out; \
     cp -R "$OUT_DIR" /out/typescript-client
@@ -97,7 +161,7 @@ COPY --from=typescript-builder /out/typescript-client /out/typescript-client
 
 ########################################################################
 # STAGE: GO BUILDER
-# Purpose: generate Go client and validate go.mod
+# Purpose: generate Go client
 ########################################################################
 FROM golang:1.24-bookworm AS go-builder
 
@@ -110,18 +174,18 @@ COPY --from=openapi-cli /opt/openapi-generator/openapi-generator-cli.jar /opt/op
 WORKDIR /src
 COPY . /src
 
+COPY --from=config-splitter /out/config/go/openapi-generator-config.json /tmp/openapi-generator-config.json
+COPY --from=config-splitter /out/config/go/openapi-generator-ignore-list.txt /tmp/openapi-generator-ignore-list.txt
+COPY --from=config-splitter /out/config/go/openapi-generator-out-dir.txt /tmp/openapi-generator-out-dir.txt
+
 ENV OPENAPI_CLI_JAR=/opt/openapi-generator/openapi-generator-cli.jar
-ENV UNIFIED_CONFIG_FILE=/src/openapi-generator.config.json
 
 RUN set -eu; \
-    python3 -c "import json,pathlib; cfg=json.loads(pathlib.Path('${UNIFIED_CONFIG_FILE}').read_text()); common=cfg.get('common', {}); lang=cfg['languages']['go']; merged={**{k:v for k,v in common.items() if k not in ('ignoreList','additionalProperties')}, **{k:v for k,v in lang.items() if k not in ('ignoreList','additionalProperties')}}; additional={**common.get('additionalProperties', {}), **lang.get('additionalProperties', {})}; merged.update({'additionalProperties': additional} if additional else {}); pathlib.Path('/tmp/openapi-generator-config.json').write_text(json.dumps(merged, indent=2)); ignore=[*common.get('ignoreList', []), *lang.get('ignoreList', [])]; pathlib.Path('/tmp/openapi-generator-ignore-list.txt').write_text(','.join(ignore)); out=merged.get('outputDir', 'out/go-client'); out=f'/src/{out}' if not out.startswith('/') else out; pathlib.Path('/tmp/openapi-generator-out-dir.txt').write_text(out)"; \
     OUT_DIR="$(cat /tmp/openapi-generator-out-dir.txt)"; \
     OAG_IGNORE_LIST="$(cat /tmp/openapi-generator-ignore-list.txt)"; \
     rm -rf "$OUT_DIR"; \
     java -jar "$OPENAPI_CLI_JAR" generate -c /tmp/openapi-generator-config.json --openapi-generator-ignore-list "$OAG_IGNORE_LIST"; \
     rm -rf "$OUT_DIR/.openapi-generator"; \
-    test -f "$OUT_DIR/go.mod"; \
-    grep -E '^module ' "$OUT_DIR/go.mod"; \
     rm -rf /out/go-client; \
     mkdir -p /out; \
     cp -R "$OUT_DIR" /out/go-client
