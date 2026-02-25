@@ -2,7 +2,7 @@
 
 Minimal OpenAPI Generator template overrides for:
 - `pydantic` models (v2 style)
-- `httpx` sync client
+- `httpx` sync + async clients
 - `pyproject.toml` packaging (PEP 621 + hatchling)
 - modern typing syntax in generated code (`| None`, `list[...]`, `dict[...]`)
 - very shallow call path (`API method -> ApiClient.request -> httpx`)
@@ -12,6 +12,22 @@ Minimal OpenAPI Generator template overrides for:
 ```bash
 openapi-generator-cli generate \
   -c /absolute/path/to/openapi-generator-kiss-templates/python/openapi-generator-config.yaml
+```
+
+Sync high-level client:
+```python
+from your_package_name import Client
+
+client = Client()
+client.ingredients.some_operation(...)
+```
+
+Async high-level client:
+```python
+from your_package_name import AsyncClient
+
+async with AsyncClient() as client:
+    await client.ingredients.some_operation(...)
 ```
 
 ## Docker Shortcut

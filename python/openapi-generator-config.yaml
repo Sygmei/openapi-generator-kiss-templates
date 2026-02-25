@@ -4,6 +4,6 @@ outputDir: out/python-client
 templateDir: python
 
 additionalProperties:
-  packageName: kiss_client
-  projectName: kiss-client
+  packageName: lapiaza_api_client
+  projectName: lapiaza-api-client
   packageVersion: 0.1.0

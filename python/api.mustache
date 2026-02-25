@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from {{packageName}}.api_client import ApiClient
+from {{packageName}}.api_client import ApiClient, AsyncApiClient
 {{#imports}}
 {{{import}}}
 {{/imports}}
@@ -51,6 +51,70 @@ class {{classname}}:
         json_body = None
 {{/hasBodyParam}}
         response = self.api_client.request(
+            "{{httpMethod}}",
+            path,
+            query=query or None,
+            headers=headers or None,
+            json_body=json_body,
+        )
+{{#returnType}}
+        if response.status_code == 204:
+            return None
+        payload = response.json()
+        try:
+            return {{{returnType}}}.model_validate(payload)  # type: ignore[attr-defined]
+        except Exception:
+            return payload
+{{/returnType}}
+{{^returnType}}
+        return response
+{{/returnType}}
+
+{{/operation}}
+{{/operations}}
+
+
+class Async{{classname}}:
+    def __init__(self, api_client: AsyncApiClient | None = None) -> None:
+        self.api_client = api_client or AsyncApiClient()
+
+{{#operations}}
+{{#operation}}
+    async def {{operationId}}(
+        self,
+{{#allParams}}
+        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+{{/allParams}}
+    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+        path = "{{{path}}}"
+{{#allParams}}
+{{#isPathParam}}
+        path = path.replace("{" + "{{baseName}}" + "}", str({{paramName}}))
+{{/isPathParam}}
+{{/allParams}}
+        query: dict[str, Any] = {}
+{{#allParams}}
+{{#isQueryParam}}
+        if {{paramName}} is not None:
+            query["{{baseName}}"] = {{paramName}}
+{{/isQueryParam}}
+{{/allParams}}
+
+        headers: dict[str, str] = {}
+{{#allParams}}
+{{#isHeaderParam}}
+        if {{paramName}} is not None:
+            headers["{{baseName}}"] = str({{paramName}})
+{{/isHeaderParam}}
+{{/allParams}}
+
+{{#hasBodyParam}}
+        json_body = {{#bodyParam}}{{paramName}}{{/bodyParam}}
+{{/hasBodyParam}}
+{{^hasBodyParam}}
+        json_body = None
+{{/hasBodyParam}}
+        response = await self.api_client.request(
             "{{httpMethod}}",
             path,
             query=query or None,

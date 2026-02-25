@@ -1,9 +1,15 @@
-from {{packageName}}.api_client import ApiClient
+from __future__ import annotations
+
+from {{packageName}}.api import AsyncClient, Client
+from {{packageName}}.api_client import ApiClient, AsyncApiClient
 from {{packageName}}.configuration import Configuration
 from {{packageName}}.exceptions import ApiError
 
 __all__ = [
     "ApiClient",
+    "AsyncApiClient",
+    "Client",
+    "AsyncClient",
     "Configuration",
     "ApiError",
 ]

@@ -18,8 +18,7 @@ COPY . /src
 ENV OPENAPI_CLI_JAR=/opt/openapi-generator/openapi-generator-cli.jar
 ENV CONFIG_FILE=/src/python/openapi-generator-config.yaml
 ENV OUT_DIR=/src/out/python-client
-ENV PACKAGE_NAME=kiss_client
-ENV OAG_IGNORE_LIST=.travis.yml,.gitlab-ci.yml,git_push.sh,setup.py,requirements.txt,tox.ini,setup.cfg,.github/,.openapi-generator/,docs/,test/,test-requirements.txt
+ENV OAG_IGNORE_LIST=.travis.yml,.gitlab-ci.yml,git_push.sh,setup.py,requirements.txt,tox.ini,setup.cfg,.github/,.openapi-generator/,docs/,test/,test-requirements.txt,**/rest.py,**/api_response.py
 
 RUN set -euo pipefail; \
     rm -rf "$OUT_DIR"; \
@@ -29,7 +28,7 @@ RUN set -euo pipefail; \
     ruff check --fix "$OUT_DIR"; \
     ruff format "$OUT_DIR"; \
     python -m pip install --no-cache-dir "$OUT_DIR"; \
-    python -c "import importlib, os; pkg=os.environ['PACKAGE_NAME']; mod=importlib.import_module(pkg); print('Import OK:', mod.__name__)"
+    python -c "import importlib,tomllib,pathlib; p=pathlib.Path('${OUT_DIR}/pyproject.toml'); d=tomllib.loads(p.read_text()); pkg=d['tool']['hatch']['build']['targets']['wheel']['packages'][0]; mod=importlib.import_module(pkg); print('Import OK:', mod.__name__)"
 
 FROM scratch
 COPY --from=builder /src/out/python-client /out/python-client

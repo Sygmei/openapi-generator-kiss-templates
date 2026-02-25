@@ -1,0 +1,81 @@
+# flake8: noqa
+from __future__ import annotations
+
+from typing import Any
+
+from {{packageName}}.api_client import ApiClient, AsyncApiClient
+
+# import apis into api package
+{{#apiInfo}}
+{{#apis}}
+from {{apiPackage}}.{{classFilename}} import {{classname}}, Async{{classname}}
+{{/apis}}
+{{/apiInfo}}
+
+
+class Client:
+    def __init__(self, api_client: ApiClient | None = None) -> None:
+        self.api_client = api_client or ApiClient()
+{{#apiInfo}}
+{{#apis}}
+        self._{{baseName}}: {{classname}} = {{classname}}(api_client=self.api_client)
+{{/apis}}
+{{/apiInfo}}
+
+{{#apiInfo}}
+{{#apis}}
+    @property
+    def {{baseName}}(self) -> {{classname}}:
+        return self._{{baseName}}
+
+{{/apis}}
+{{/apiInfo}}
+
+    def close(self) -> None:
+        self.api_client.close()
+
+    def __enter__(self) -> "Client":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        self.close()
+
+
+class AsyncClient:
+    def __init__(self, api_client: AsyncApiClient | None = None) -> None:
+        self.api_client = api_client or AsyncApiClient()
+{{#apiInfo}}
+{{#apis}}
+        self._{{baseName}}: Async{{classname}} = Async{{classname}}(api_client=self.api_client)
+{{/apis}}
+{{/apiInfo}}
+
+{{#apiInfo}}
+{{#apis}}
+    @property
+    def {{baseName}}(self) -> Async{{classname}}:
+        return self._{{baseName}}
+
+{{/apis}}
+{{/apiInfo}}
+
+    async def aclose(self) -> None:
+        await self.api_client.aclose()
+
+    async def __aenter__(self) -> "AsyncClient":
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        await self.aclose()
+
+
+__all__ = [
+{{#apiInfo}}
+{{#apis}}
+    "{{classname}}",
+    "Async{{classname}}",
+{{/apis}}
+{{/apiInfo}}
+    "Client",
+    "AsyncClient",
+]

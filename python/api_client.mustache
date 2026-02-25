@@ -8,6 +8,18 @@ from {{packageName}}.configuration import Configuration
 from {{packageName}}.exceptions import ApiError
 
 
+def _jsonable(value: Any) -> Any:
+    if value is None:
+        return None
+    if hasattr(value, "model_dump"):
+        return value.model_dump(by_alias=True, exclude_none=True)
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {k: _jsonable(v) for k, v in value.items()}
+    return value
+
+
 class ApiClient:
     def __init__(
         self,
@@ -49,7 +61,7 @@ class ApiClient:
             url=path,
             params=query,
             headers=merged_headers,
-            json=self._jsonable(json_body),
+            json=_jsonable(json_body),
         )
         if response.is_error:
             raise ApiError(
@@ -59,13 +71,53 @@ class ApiClient:
             )
         return response
 
-    def _jsonable(self, value: Any) -> Any:
-        if value is None:
-            return None
-        if hasattr(value, "model_dump"):
-            return value.model_dump(by_alias=True, exclude_none=True)
-        if isinstance(value, list):
-            return [self._jsonable(item) for item in value]
-        if isinstance(value, dict):
-            return {k: self._jsonable(v) for k, v in value.items()}
-        return value
+class AsyncApiClient:
+    def __init__(
+        self,
+        configuration: Configuration | None = None,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        self.configuration = configuration or Configuration()
+        self._owned_client = client is None
+        self.client = client or httpx.AsyncClient(
+            base_url=self.configuration.base_url,
+            timeout=self.configuration.timeout,
+        )
+
+    async def aclose(self) -> None:
+        if self._owned_client:
+            await self.client.aclose()
+
+    async def __aenter__(self) -> "AsyncApiClient":
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        await self.aclose()
+
+    async def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        json_body: Any = None,
+    ) -> httpx.Response:
+        merged_headers = dict(self.configuration.default_headers)
+        if headers:
+            merged_headers.update(headers)
+
+        response = await self.client.request(
+            method=method.upper(),
+            url=path,
+            params=query,
+            headers=merged_headers,
+            json=_jsonable(json_body),
+        )
+        if response.is_error:
+            raise ApiError(
+                status_code=response.status_code,
+                message=f"{method.upper()} {path} failed",
+                body=response.text,
+            )
+        return response
