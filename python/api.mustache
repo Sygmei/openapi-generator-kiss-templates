@@ -16,12 +16,12 @@ class {{classname}}:
 
 {{#operations}}
 {{#operation}}
-    def {{operationId}}(
+    def {{operationId}}_raw(
         self,
 {{#allParams}}
         {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
 {{/allParams}}
-    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+    ) -> httpx.Response:
         path = "{{{path}}}"
 {{#allParams}}
 {{#isPathParam}}
@@ -57,6 +57,19 @@ class {{classname}}:
             headers=headers or None,
             json_body=json_body,
         )
+        return response
+
+    def {{operationId}}(
+        self,
+{{#allParams}}
+        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+{{/allParams}}
+    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+        response = self.{{operationId}}_raw(
+{{#allParams}}
+            {{paramName}}={{paramName}},
+{{/allParams}}
+        )
 {{#returnType}}
         if response.status_code == 204:
             return None
@@ -80,12 +93,12 @@ class Async{{classname}}:
 
 {{#operations}}
 {{#operation}}
-    async def {{operationId}}(
+    async def {{operationId}}_raw(
         self,
 {{#allParams}}
         {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
 {{/allParams}}
-    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+    ) -> httpx.Response:
         path = "{{{path}}}"
 {{#allParams}}
 {{#isPathParam}}
@@ -120,6 +133,19 @@ class Async{{classname}}:
             query=query or None,
             headers=headers or None,
             json_body=json_body,
+        )
+        return response
+
+    async def {{operationId}}(
+        self,
+{{#allParams}}
+        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+{{/allParams}}
+    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+        response = await self.{{operationId}}_raw(
+{{#allParams}}
+            {{paramName}}={{paramName}},
+{{/allParams}}
         )
 {{#returnType}}
         if response.status_code == 204:
