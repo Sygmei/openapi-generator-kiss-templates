@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+
+{{#imports}}
+{{{import}}}
+{{/imports}}
+
+{{#models}}
+{{#model}}
+class {{classname}}(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+{{#vars}}
+{{#required}}
+    {{name}}: {{{dataType}}} = Field(..., alias="{{baseName}}")
+{{/required}}
+{{^required}}
+    {{name}}: Optional[{{{dataType}}}] = Field(default=None, alias="{{baseName}}")
+{{/required}}
+{{/vars}}
+{{^vars}}
+    pass
+{{/vars}}
+
+{{/model}}
+{{/models}}

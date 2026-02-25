@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import httpx
+
+from {{packageName}}.api_client import ApiClient
+{{#imports}}
+{{{import}}}
+{{/imports}}
+
+
+class {{classname}}:
+    def __init__(self, api_client: Optional[ApiClient] = None) -> None:
+        self.api_client = api_client or ApiClient()
+
+{{#operations}}
+{{#operation}}
+    def {{operationId}}(
+        self,
+{{#allParams}}
+        {{paramName}}: {{^required}}Optional[{{/required}}{{{dataType}}}{{^required}}] = None{{/required}},
+{{/allParams}}
+    ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
+        path = "{{{path}}}"
+{{#allParams}}
+{{#isPathParam}}
+        path = path.replace("{" + "{{baseName}}" + "}", str({{paramName}}))
+{{/isPathParam}}
+{{/allParams}}
+        query: Dict[str, Any] = {}
+{{#allParams}}
+{{#isQueryParam}}
+        if {{paramName}} is not None:
+            query["{{baseName}}"] = {{paramName}}
+{{/isQueryParam}}
+{{/allParams}}
+
+        headers: Dict[str, str] = {}
+{{#allParams}}
+{{#isHeaderParam}}
+        if {{paramName}} is not None:
+            headers["{{baseName}}"] = str({{paramName}})
+{{/isHeaderParam}}
+{{/allParams}}
+
+{{#hasBodyParam}}
+        json_body = {{#bodyParam}}{{paramName}}{{/bodyParam}}
+{{/hasBodyParam}}
+{{^hasBodyParam}}
+        json_body = None
+{{/hasBodyParam}}
+        response = self.api_client.request(
+            "{{httpMethod}}",
+            path,
+            query=query or None,
+            headers=headers or None,
+            json_body=json_body,
+        )
+{{#returnType}}
+        if response.status_code == 204:
+            return None
+        payload = response.json()
+        try:
+            return {{{returnType}}}.model_validate(payload)  # type: ignore[attr-defined]
+        except Exception:
+            return payload
+{{/returnType}}
+{{^returnType}}
+        return response
+{{/returnType}}
+
+{{/operation}}
+{{/operations}}

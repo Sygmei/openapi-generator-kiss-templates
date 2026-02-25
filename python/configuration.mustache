@@ -1,0 +1,17 @@
+from dataclasses import dataclass, field
+from typing import Dict, Optional
+
+
+@dataclass
+class Configuration:
+    base_url: str = "{{#basePath}}{{{basePath}}}{{/basePath}}{{^basePath}}http://localhost{{/basePath}}"
+    timeout: float = 30.0
+    api_key: Optional[str] = None
+    access_token: Optional[str] = None
+    default_headers: Dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.api_key and "X-API-Key" not in self.default_headers:
+            self.default_headers["X-API-Key"] = self.api_key
+        if self.access_token and "Authorization" not in self.default_headers:
+            self.default_headers["Authorization"] = f"Bearer {self.access_token}"

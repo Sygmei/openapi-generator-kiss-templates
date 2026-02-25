@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import httpx
+
+from {{packageName}}.configuration import Configuration
+from {{packageName}}.exceptions import ApiError
+
+
+class ApiClient:
+    def __init__(
+        self,
+        configuration: Optional[Configuration] = None,
+        client: Optional[httpx.Client] = None,
+    ) -> None:
+        self.configuration = configuration or Configuration()
+        self._owned_client = client is None
+        self.client = client or httpx.Client(
+            base_url=self.configuration.base_url,
+            timeout=self.configuration.timeout,
+        )
+
+    def close(self) -> None:
+        if self._owned_client:
+            self.client.close()
+
+    def __enter__(self) -> "ApiClient":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+        self.close()
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        query: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        json_body: Any = None,
+    ) -> httpx.Response:
+        merged_headers = dict(self.configuration.default_headers)
+        if headers:
+            merged_headers.update(headers)
+
+        response = self.client.request(
+            method=method.upper(),
+            url=path,
+            params=query,
+            headers=merged_headers,
+            json=self._jsonable(json_body),
+        )
+        if response.is_error:
+            raise ApiError(
+                status_code=response.status_code,
+                message=f"{method.upper()} {path} failed",
+                body=response.text,
+            )
+        return response
+
+    def _jsonable(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if hasattr(value, "model_dump"):
+            return value.model_dump(by_alias=True, exclude_none=True)
+        if isinstance(value, list):
+            return [self._jsonable(item) for item in value]
+        if isinstance(value, dict):
+            return {k: self._jsonable(v) for k, v in value.items()}
+        return value

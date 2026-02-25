@@ -1,0 +1,9 @@
+generatorName: python
+inputSpec: test-openapi.json
+outputDir: out/python-client
+templateDir: python
+
+additionalProperties:
+  packageName: kiss_client
+  projectName: kiss-client
+  packageVersion: 0.1.0
