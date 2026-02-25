@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -11,7 +11,7 @@ from {{packageName}}.api_client import ApiClient
 
 
 class {{classname}}:
-    def __init__(self, api_client: Optional[ApiClient] = None) -> None:
+    def __init__(self, api_client: ApiClient | None = None) -> None:
         self.api_client = api_client or ApiClient()
 
 {{#operations}}
@@ -19,7 +19,7 @@ class {{classname}}:
     def {{operationId}}(
         self,
 {{#allParams}}
-        {{paramName}}: {{^required}}Optional[{{/required}}{{{dataType}}}{{^required}}] = None{{/required}},
+        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
         path = "{{{path}}}"
@@ -28,7 +28,7 @@ class {{classname}}:
         path = path.replace("{" + "{{baseName}}" + "}", str({{paramName}}))
 {{/isPathParam}}
 {{/allParams}}
-        query: Dict[str, Any] = {}
+        query: dict[str, Any] = {}
 {{#allParams}}
 {{#isQueryParam}}
         if {{paramName}} is not None:
@@ -36,7 +36,7 @@ class {{classname}}:
 {{/isQueryParam}}
 {{/allParams}}
 
-        headers: Dict[str, str] = {}
+        headers: dict[str, str] = {}
 {{#allParams}}
 {{#isHeaderParam}}
         if {{paramName}} is not None:

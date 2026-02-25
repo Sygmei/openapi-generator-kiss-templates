@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -11,8 +11,8 @@ from {{packageName}}.exceptions import ApiError
 class ApiClient:
     def __init__(
         self,
-        configuration: Optional[Configuration] = None,
-        client: Optional[httpx.Client] = None,
+        configuration: Configuration | None = None,
+        client: httpx.Client | None = None,
     ) -> None:
         self.configuration = configuration or Configuration()
         self._owned_client = client is None
@@ -36,8 +36,8 @@ class ApiClient:
         method: str,
         path: str,
         *,
-        query: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        query: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
         json_body: Any = None,
     ) -> httpx.Response:
         merged_headers = dict(self.configuration.default_headers)
