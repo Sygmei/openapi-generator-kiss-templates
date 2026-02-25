@@ -38,10 +38,10 @@ async with AsyncClient() as client:
 ```
 
 ## Docker Shortcut
-From repo root:
+From repo root (single unified Dockerfile):
 
 ```bash
-docker build -f Dockerfile.python -t kiss-openapi-python .
+docker build --target python -t kiss-openapi-python .
 docker save kiss-openapi-python -o kiss-openapi-python.tar
 source .venv/bin/activate
 docker-tartare extract kiss-openapi-python.tar /out out --dir

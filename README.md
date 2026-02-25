@@ -7,39 +7,30 @@ Simple and stupid OpenAPI generator templates
 - `go/`: minimal Go client setup (`go` generator)
 
 ## Build Artifact With Docker
-Build Python:
-```bash
-docker build -f Dockerfile.python -t kiss-openapi-python .
-```
+A single [`Dockerfile`](/Users/sygmei/Projects/openapi-generator-kiss-templates/Dockerfile) now contains one stage per language:
+- `python`
+- `typescript`
+- `go`
+- `all` (default final stage)
 
-Save image layers:
+Build all languages at once:
 ```bash
-docker save kiss-openapi-python -o kiss-openapi-python.tar
-```
-
-Extract `/out` with `docker-tartare` (installed in local `.venv`):
-```bash
+docker build -t kiss-openapi-artifact .
+docker save kiss-openapi-artifact -o kiss-openapi-artifact.tar
 source .venv/bin/activate
-docker-tartare extract kiss-openapi-python.tar /out out --dir
+docker-tartare extract kiss-openapi-artifact.tar /out out --dir
 ```
 
-Build TypeScript:
+Build only one language:
 ```bash
-docker build -f Dockerfile.typescript -t kiss-openapi-typescript .
-docker save kiss-openapi-typescript -o kiss-openapi-typescript.tar
-source .venv/bin/activate
-docker-tartare extract kiss-openapi-typescript.tar /out out --dir
+docker build --target python -t kiss-openapi-python .
+docker build --target typescript -t kiss-openapi-typescript .
+docker build --target go -t kiss-openapi-go .
 ```
 
-Build Go:
-```bash
-docker build -f Dockerfile.go -t kiss-openapi-go .
-docker save kiss-openapi-go -o kiss-openapi-go.tar
-source .venv/bin/activate
-docker-tartare extract kiss-openapi-go.tar /out out --dir
-```
+Each stage generates at build time and embeds output in `/out/<language>-client`.
+No `docker run` step is required.
 
-This image is generated at build time; no `docker run` step is required.
 Generator options are read from:
 - [`openapi-generator.config.json`](/Users/sygmei/Projects/openapi-generator-kiss-templates/openapi-generator.config.json)
   - `common`: shared options

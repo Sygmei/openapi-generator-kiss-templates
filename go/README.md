@@ -18,10 +18,10 @@ openapi-generator-cli generate -c /tmp/oag-go-config.json
 
 ## Docker Shortcut
 
-From repo root:
+From repo root (single unified Dockerfile):
 
 ```bash
-docker build -f Dockerfile.go -t kiss-openapi-go .
+docker build --target go -t kiss-openapi-go .
 docker save kiss-openapi-go -o kiss-openapi-go.tar
 source .venv/bin/activate
 docker-tartare extract kiss-openapi-go.tar /out out --dir

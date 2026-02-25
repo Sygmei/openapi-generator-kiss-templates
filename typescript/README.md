@@ -18,10 +18,10 @@ openapi-generator-cli generate -c /tmp/oag-typescript-config.json
 
 ## Docker Shortcut
 
-From repo root:
+From repo root (single unified Dockerfile):
 
 ```bash
-docker build -f Dockerfile.typescript -t kiss-openapi-typescript .
+docker build --target typescript -t kiss-openapi-typescript .
 docker save kiss-openapi-typescript -o kiss-openapi-typescript.tar
 source .venv/bin/activate
 docker-tartare extract kiss-openapi-typescript.tar /out out --dir
