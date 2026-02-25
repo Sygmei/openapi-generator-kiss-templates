@@ -1,0 +1,56 @@
+{
+  "common": {
+    "inputSpec": "test-openapi.json",
+    "ignoreList": [
+      ".travis.yml",
+      ".gitlab-ci.yml",
+      "git_push.sh",
+      ".github/",
+      ".openapi-generator/",
+      "docs/",
+      "test/"
+    ]
+  },
+  "languages": {
+    "python": {
+      "generatorName": "python",
+      "outputDir": "out/python-client",
+      "templateDir": "python",
+      "ignoreList": [
+        "setup.py",
+        "requirements.txt",
+        "tox.ini",
+        "setup.cfg",
+        "test-requirements.txt",
+        "**/rest.py",
+        "**/api_response.py"
+      ],
+      "additionalProperties": {
+        "packageName": "lapiaza_api_client",
+        "projectName": "lapiaza-api-client",
+        "packageVersion": "0.1.0"
+      }
+    },
+    "typescript": {
+      "generatorName": "typescript-fetch",
+      "outputDir": "out/typescript-client",
+      "templateDir": "typescript",
+      "additionalProperties": {
+        "npmName": "lapiaza-api-client-ts",
+        "npmVersion": "0.1.0",
+        "supportsES6": true,
+        "useSingleRequestParameter": true,
+        "withInterfaces": true
+      }
+    },
+    "go": {
+      "generatorName": "go",
+      "outputDir": "out/go-client",
+      "templateDir": "go",
+      "additionalProperties": {
+        "packageName": "lapiaza",
+        "packageVersion": "0.1.0"
+      }
+    }
+  }
+}

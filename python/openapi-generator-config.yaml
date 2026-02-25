@@ -1,9 +1,0 @@
-generatorName: python
-inputSpec: test-openapi.json
-outputDir: out/python-client
-templateDir: python
-
-additionalProperties:
-  packageName: lapiaza_api_client
-  projectName: lapiaza-api-client
-  packageVersion: 0.1.0

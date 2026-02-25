@@ -9,9 +9,16 @@ Minimal OpenAPI Generator template overrides for:
 
 ## Usage
 
+Config source of truth is:
+- [`openapi-generator.config.json`](/Users/sygmei/Projects/openapi-generator-kiss-templates/openapi-generator.config.json)
+- Section: `languages.python`
+
+`openapi-generator-cli` cannot directly read per-language sections, so Docker build extracts the Python section automatically.
+
+Direct generation example (section extraction + generate):
 ```bash
-openapi-generator-cli generate \
-  -c /absolute/path/to/openapi-generator-kiss-templates/python/openapi-generator-config.yaml
+python -c "import json,pathlib; cfg=json.loads(pathlib.Path('openapi-generator.config.json').read_text()); common=cfg.get('common',{}); lang=cfg['languages']['python']; merged={**{k:v for k,v in common.items() if k not in ('ignoreList','additionalProperties')}, **{k:v for k,v in lang.items() if k not in ('ignoreList','additionalProperties')}}; ap={**common.get('additionalProperties',{}), **lang.get('additionalProperties',{})}; merged.update({'additionalProperties': ap} if ap else {}); pathlib.Path('/tmp/oag-python-config.json').write_text(json.dumps(merged, indent=2))"
+openapi-generator-cli generate -c /tmp/oag-python-config.json
 ```
 
 Sync high-level client:
@@ -34,10 +41,10 @@ async with AsyncClient() as client:
 From repo root:
 
 ```bash
-docker build -t kiss-openapi-artifact .
-docker save kiss-openapi-artifact -o kiss-openapi-artifact.tar
+docker build -f Dockerfile.python -t kiss-openapi-python .
+docker save kiss-openapi-python -o kiss-openapi-python.tar
 source .venv/bin/activate
-python scripts/extract_out.py kiss-openapi-artifact.tar --output out
+docker-tartare extract kiss-openapi-python.tar /out out --dir
 ```
 
 Generated client is embedded in the image at `/out/python-client` and extracted to `out/python-client`.
