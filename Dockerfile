@@ -1,4 +1,7 @@
 ARG OPENAPI_GENERATOR_VERSION=7.12.0
+ARG PYTHON_PACKAGE_VERSION=
+ARG TYPESCRIPT_NPM_VERSION=
+ARG GO_PACKAGE_VERSION=
 
 ########################################################################
 # STAGE: OPENAPI CLI DOWNLOAD
@@ -20,6 +23,9 @@ RUN mkdir -p /opt/openapi-generator \
 # Purpose: split unified config into per-language artifacts once
 ########################################################################
 FROM python:3.12-slim AS config-splitter
+ARG PYTHON_PACKAGE_VERSION
+ARG TYPESCRIPT_NPM_VERSION
+ARG GO_PACKAGE_VERSION
 
 WORKDIR /src
 COPY openapi-generator.config.json /src/openapi-generator.config.json
@@ -28,7 +34,10 @@ COPY scripts/split_openapi_config.py /usr/local/bin/split_openapi_config.py
 RUN set -eu; \
     python /usr/local/bin/split_openapi_config.py \
       --config /src/openapi-generator.config.json \
-      --out-root /out/config
+      --out-root /out/config \
+      --python-package-version "${PYTHON_PACKAGE_VERSION}" \
+      --typescript-npm-version "${TYPESCRIPT_NPM_VERSION}" \
+      --go-package-version "${GO_PACKAGE_VERSION}"
 
 ########################################################################
 # STAGE: PYTHON BUILDER

@@ -1,2 +1,4 @@
 out/
 test-openapi*.json
+__pycache__/
+**/__pycache__/

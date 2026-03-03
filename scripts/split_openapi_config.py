@@ -91,6 +91,40 @@ def split_config(config_path: Path, out_root: Path) -> None:
         )
 
 
+def apply_version_overrides(
+    config: dict[str, Any],
+    python_package_version: str | None,
+    typescript_npm_version: str | None,
+    go_package_version: str | None,
+) -> dict[str, Any]:
+    cfg = dict(config)
+    languages = _ensure_dict("languages", cfg.get("languages"))
+    cfg["languages"] = languages
+
+    def ensure_language(name: str) -> dict[str, Any]:
+        if name not in languages:
+            return {}
+        language_config = _ensure_dict(f"languages.{name}", languages.get(name))
+        languages[name] = language_config
+        additional = _ensure_dict(
+            f"languages.{name}.additionalProperties",
+            language_config.get("additionalProperties"),
+        )
+        language_config["additionalProperties"] = additional
+        return additional
+
+    if python_package_version:
+        ensure_language("python")["packageVersion"] = python_package_version
+
+    if typescript_npm_version:
+        ensure_language("typescript")["npmVersion"] = typescript_npm_version
+
+    if go_package_version:
+        ensure_language("go")["packageVersion"] = go_package_version
+
+    return cfg
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Split unified openapi-generator config")
     parser.add_argument(
@@ -105,9 +139,37 @@ def main() -> None:
         default=Path("/out/config"),
         help="Output directory for per-language files",
     )
+    parser.add_argument(
+        "--python-package-version",
+        default=None,
+        help="Override languages.python.additionalProperties.packageVersion",
+    )
+    parser.add_argument(
+        "--typescript-npm-version",
+        default=None,
+        help="Override languages.typescript.additionalProperties.npmVersion",
+    )
+    parser.add_argument(
+        "--go-package-version",
+        default=None,
+        help="Override languages.go.additionalProperties.packageVersion",
+    )
     args = parser.parse_args()
 
-    split_config(args.config, args.out_root)
+    raw_config = json.loads(args.config.read_text(encoding="utf-8"))
+    if not isinstance(raw_config, dict):
+        raise TypeError("Root config must be an object")
+    overridden = apply_version_overrides(
+        config=raw_config,
+        python_package_version=args.python_package_version,
+        typescript_npm_version=args.typescript_npm_version,
+        go_package_version=args.go_package_version,
+    )
+    temp_config = args.out_root / "_effective_config.json"
+    temp_config.parent.mkdir(parents=True, exist_ok=True)
+    temp_config.write_text(f"{json.dumps(overridden, indent=2)}\n", encoding="utf-8")
+    split_config(temp_config, args.out_root)
+    temp_config.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
