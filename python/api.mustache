@@ -16,7 +16,7 @@ class {{classname}}:
 
 {{#operations}}
 {{#operation}}
-    def {{operationId}}_raw(
+    def _{{operationId}}_raw(
         self,
 {{#allParams}}
         {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
@@ -65,7 +65,7 @@ class {{classname}}:
         {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
-        response = self.{{operationId}}_raw(
+        response = self._{{operationId}}_raw(
 {{#allParams}}
             {{paramName}}={{paramName}},
 {{/allParams}}
@@ -93,7 +93,7 @@ class Async{{classname}}:
 
 {{#operations}}
 {{#operation}}
-    async def {{operationId}}_raw(
+    async def _{{operationId}}_raw(
         self,
 {{#allParams}}
         {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
@@ -142,7 +142,7 @@ class Async{{classname}}:
         {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
-        response = await self.{{operationId}}_raw(
+        response = await self._{{operationId}}_raw(
 {{#allParams}}
             {{paramName}}={{paramName}},
 {{/allParams}}
