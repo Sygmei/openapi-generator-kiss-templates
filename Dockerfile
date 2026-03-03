@@ -1,4 +1,5 @@
 ARG OPENAPI_GENERATOR_VERSION=7.12.0
+ARG PACKAGE_VERSION=
 ARG PYTHON_PACKAGE_VERSION=
 ARG TYPESCRIPT_NPM_VERSION=
 ARG GO_PACKAGE_VERSION=
@@ -23,6 +24,7 @@ RUN mkdir -p /opt/openapi-generator \
 # Purpose: split unified config into per-language artifacts once
 ########################################################################
 FROM python:3.12-slim AS config-splitter
+ARG PACKAGE_VERSION
 ARG PYTHON_PACKAGE_VERSION
 ARG TYPESCRIPT_NPM_VERSION
 ARG GO_PACKAGE_VERSION
@@ -35,6 +37,7 @@ RUN set -eu; \
     python /usr/local/bin/split_openapi_config.py \
       --config /src/openapi-generator.config.json \
       --out-root /out/config \
+      --package-version "${PACKAGE_VERSION}" \
       --python-package-version "${PYTHON_PACKAGE_VERSION}" \
       --typescript-npm-version "${TYPESCRIPT_NPM_VERSION}" \
       --go-package-version "${GO_PACKAGE_VERSION}"
