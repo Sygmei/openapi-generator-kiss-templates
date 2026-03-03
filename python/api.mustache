@@ -19,7 +19,7 @@ class {{classname}}:
     def {{operationId}}_raw(
         self,
 {{#allParams}}
-        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+        {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> httpx.Response:
         path = "{{{path}}}"
@@ -62,7 +62,7 @@ class {{classname}}:
     def {{operationId}}(
         self,
 {{#allParams}}
-        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+        {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
         response = self.{{operationId}}_raw(
@@ -96,7 +96,7 @@ class Async{{classname}}:
     async def {{operationId}}_raw(
         self,
 {{#allParams}}
-        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+        {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> httpx.Response:
         path = "{{{path}}}"
@@ -139,7 +139,7 @@ class Async{{classname}}:
     async def {{operationId}}(
         self,
 {{#allParams}}
-        {{paramName}}: {{{dataType}}}{{^required}} | None = None{{/required}},
+        {{paramName}}: {{#schema}}{{{dataType}}}{{/schema}}{{^schema}}{{{dataType}}}{{/schema}}{{^required}} | None = None{{/required}},
 {{/allParams}}
     ) -> {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}httpx.Response{{/returnType}}:
         response = await self.{{operationId}}_raw(

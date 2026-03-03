@@ -18,15 +18,15 @@ class Client:
         self.api_client = api_client or ApiClient()
 {{#apiInfo}}
 {{#apis}}
-        self._{{baseName}}: {{classname}} = {{classname}}(api_client=self.api_client)
+        self._{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}: {{classname}} = {{classname}}(api_client=self.api_client)
 {{/apis}}
 {{/apiInfo}}
 
 {{#apiInfo}}
 {{#apis}}
     @property
-    def {{baseName}}(self) -> {{classname}}:
-        return self._{{baseName}}
+    def {{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}(self) -> {{classname}}:
+        return self._{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}
 
 {{/apis}}
 {{/apiInfo}}
@@ -46,15 +46,15 @@ class AsyncClient:
         self.api_client = api_client or AsyncApiClient()
 {{#apiInfo}}
 {{#apis}}
-        self._{{baseName}}: Async{{classname}} = Async{{classname}}(api_client=self.api_client)
+        self._{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}: Async{{classname}} = Async{{classname}}(api_client=self.api_client)
 {{/apis}}
 {{/apiInfo}}
 
 {{#apiInfo}}
 {{#apis}}
     @property
-    def {{baseName}}(self) -> Async{{classname}}:
-        return self._{{baseName}}
+    def {{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}(self) -> Async{{classname}}:
+        return self._{{#lambda.snakecase}}{{baseName}}{{/lambda.snakecase}}
 
 {{/apis}}
 {{/apiInfo}}

@@ -23,60 +23,12 @@ FROM python:3.12-slim AS config-splitter
 
 WORKDIR /src
 COPY openapi-generator.config.json /src/openapi-generator.config.json
+COPY scripts/split_openapi_config.py /usr/local/bin/split_openapi_config.py
 
-RUN set -euo pipefail; \
-    python <<'PY'
-import json
-from pathlib import Path
-
-cfg = json.loads(Path("/src/openapi-generator.config.json").read_text())
-common = cfg.get("common", {})
-languages = cfg.get("languages", {})
-
-defaults = {
-    "python": "out/python-client",
-    "typescript": "out/typescript-client",
-    "go": "out/go-client",
-}
-
-
-def strip_special(values: dict) -> dict:
-    return {
-        k: v
-        for k, v in values.items()
-        if k not in ("ignoreList", "additionalProperties")
-    }
-
-
-out_root = Path("/out/config")
-for language, default_out in defaults.items():
-    if language not in languages:
-        raise KeyError(f"Missing languages.{language} in unified config")
-
-    lang = languages[language]
-    merged = {**strip_special(common), **strip_special(lang)}
-
-    additional = {
-        **common.get("additionalProperties", {}),
-        **lang.get("additionalProperties", {}),
-    }
-    if additional:
-        merged["additionalProperties"] = additional
-
-    lang_dir = out_root / language
-    lang_dir.mkdir(parents=True, exist_ok=True)
-    (lang_dir / "openapi-generator-config.json").write_text(
-        json.dumps(merged, indent=2)
-    )
-
-    ignore = [*common.get("ignoreList", []), *lang.get("ignoreList", [])]
-    (lang_dir / "openapi-generator-ignore-list.txt").write_text(",".join(ignore))
-
-    out_dir = merged.get("outputDir", default_out)
-    if not out_dir.startswith("/"):
-        out_dir = f"/src/{out_dir}"
-    (lang_dir / "openapi-generator-out-dir.txt").write_text(out_dir)
-PY
+RUN set -eu; \
+    python /usr/local/bin/split_openapi_config.py \
+      --config /src/openapi-generator.config.json \
+      --out-root /out/config
 
 ########################################################################
 # STAGE: PYTHON BUILDER
@@ -101,7 +53,7 @@ COPY --from=config-splitter /out/config/python/openapi-generator-out-dir.txt /tm
 
 ENV OPENAPI_CLI_JAR=/opt/openapi-generator/openapi-generator-cli.jar
 
-RUN set -euo pipefail; \
+RUN set -eu; \
     OUT_DIR="$(cat /tmp/openapi-generator-out-dir.txt)"; \
     OAG_IGNORE_LIST="$(cat /tmp/openapi-generator-ignore-list.txt)"; \
     rm -rf "$OUT_DIR"; \
