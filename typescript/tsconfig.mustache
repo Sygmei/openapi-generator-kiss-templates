@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "target": "{{#supportsES6}}ES2020{{/supportsES6}}{{^supportsES6}}ES5{{/supportsES6}}",
+{{#sagasAndRecords}}
+    "strict": true,
+{{/sagasAndRecords}}
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "dist",
+    {{^supportsES6}}
+    "lib": [
+      "es6",
+      "dom"
+    ],
+    {{/supportsES6}}
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  },
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}

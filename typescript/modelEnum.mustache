@@ -1,0 +1,21 @@
+{{>modelEnumInterfaces}}
+
+export function instanceOf{{classname}}(value: any): boolean {
+    return (Object.values({{classname}}) as any[]).includes(value);
+}
+
+export function {{classname}}FromJSON(json: any): {{classname}} {
+    return json as {{classname}};
+}
+
+export function {{classname}}FromJSONTyped(json: any, _ignoreDiscriminator: boolean): {{classname}} {
+    return json as {{classname}};
+}
+
+export function {{classname}}ToJSON(value?: {{classname}} | null): any {
+    return value as any;
+}
+
+export function {{classname}}ToJSONTyped(value: any, _ignoreDiscriminator: boolean): {{classname}} {
+    return value as {{classname}};
+}
