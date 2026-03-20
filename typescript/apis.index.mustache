@@ -1,0 +1,51 @@
+/* tslint:disable */
+/* eslint-disable */
+{{#useSagaAndRecords}}
+export * from './SagaApiManager{{importFileExtension}}'
+export * from './allSagas{{importFileExtension}}'
+{{/useSagaAndRecords}}
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+export * from './{{ classFilename }}{{importFileExtension}}';
+{{#useSagaAndRecords}}
+export * from './{{{ classFilename }}}Sagas{{importFileExtension}}';
+{{/useSagaAndRecords}}
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+import { Configuration } from '../runtime{{importFileExtension}}';
+import type { ConfigurationParameters } from '../runtime{{importFileExtension}}';
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+import { {{classname}} } from './{{classFilename}}{{importFileExtension}}';
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+/**
+ * Centralised client — bundles every API under a single object.
+ *
+ * @example
+ * const api = new ApiClient({ basePath: 'https://api.example.com', accessToken });
+ * const demand = await api.subscriptions.createSubscription({ newSubscription: { ... } });
+ */
+export class ApiClient {
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+    public readonly {{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}}: {{classname}};
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+    constructor(params: ConfigurationParameters = {}) {
+        const config = new Configuration(params);
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+        this.{{#lambda.lowercase}}{{baseName}}{{/lambda.lowercase}} = new {{classname}}(config);
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+    }
+}
